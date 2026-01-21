@@ -249,6 +249,7 @@ function drawFrame(frame, prevFrame) {
   var layout = calcLayout(groups);
   var rowH = 32;
   var medals = ["1st", "2nd", "3rd"];
+  var colors = ["#FFD700", "#C0C0C0", "#CD7F32"]; // gold, silver, bronze
 
   for (var title in groups) {
     var panelX = layout[title].x;
@@ -314,6 +315,9 @@ function drawFrame(frame, prevFrame) {
         svg.appendChild(medal);
 
         nodes[id] = { rect: rect, text: name, medal: medal };
+      } else {
+        // Update fill color based on current rank
+        nodes[id].rect.setAttribute("fill", r < 3 ? colors[r] : "#3b82f6");
       }
 
       // ----- WIDTH ANIMATION -----

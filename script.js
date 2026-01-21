@@ -2,6 +2,11 @@ var sheetURL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuOz_KYEdrt8WrAqcUBAQYBUleVsQGufTRSov0NbOr2n3qKxNpMRO-MEXNdb4ugc_HYAP912l7kAOl/pub?gid=0&single=true&output=csv";
 
 var nodes = {}; // agent -> {rect, text}
+var playIndex = 0;
+var playTimer = null;
+var visibleFrames = [];
+var prevFrame = null;
+
 function loadCSV(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", url, true);
@@ -205,51 +210,63 @@ function buildFrames(sales) {
   return frames;
 }
 
-var current = 0;
-
-function play() {
-  drawFrame(raceFrames[current]);
-
-  current++;
-  if (current >= raceFrames.length) current = 0;
-
-  setTimeout(play, 1500); // change day every 1.5 sec
-}
-
-function animateAttr(el, attr, target, duration) {
-  var start = Number(el.getAttribute(attr)) || 0;
-  var diff = target - start;
-  var startTime = Date.now();
+function startPlayback() {
+  if (!visibleFrames.length) return;
 
   function step() {
-    var t = Date.now() - startTime;
-    var p = t / duration;
-    if (p > 1) p = 1;
+    var frame = visibleFrames[playIndex];
 
-    var val = start + diff * p;
-    el.setAttribute(attr, val);
+    dayLabel.textContent = frame.date;
 
-    if (p < 1) requestAnimationFrame(step);
+    drawFrame(frame, prevFrame); // 👈 pass previous frame
+
+    prevFrame = frame; // 👈 save current as previous
+
+    playIndex++;
+
+    if (playIndex >= visibleFrames.length) {
+      playIndex = 0;
+      prevFrame = null; // reset animation base
+    }
+
+    playTimer = setTimeout(step, 1500); // faster feels more alive
   }
 
   step();
 }
 
+function animateAttr(el, attr, target, duration) {
+  
+  var start = Number(el.getAttribute(attr));
+  if (isNaN(start)) start = 0;
+  var diff = target - start;
+  var steps = 20;
+  var stepTime = duration / steps;
+  var i = 0;
+
+  var timer = setInterval(function () {
+    i++;
+    var val = start + (diff * i) / steps;
+    el.setAttribute(attr, val);
+
+    if (i >= steps) clearInterval(timer);
+  }, stepTime);
+}
 
 
-function drawFrame(frame) {
+
+function drawFrame(frame, prevFrame) {
   var groups = groupByTitle(frame.data);
   var layout = calcLayout(groups);
-  var rowH = 28;
+  var rowH = 32;
 
   for (var title in groups) {
     var panelX = layout[title].x;
     var panelW = layout[title].width;
 
-    // ---- PANEL TITLE (create once) ----
+    // ----- PANEL TITLE -----
     if (!nodes["title_" + title]) {
       var t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      t.setAttribute("x", panelX + panelW / 2);
       t.setAttribute("y", 40);
       t.setAttribute("text-anchor", "middle");
       t.setAttribute("font-size", "22");
@@ -258,10 +275,11 @@ function drawFrame(frame) {
       svg.appendChild(t);
       nodes["title_" + title] = t;
     }
+    nodes["title_" + title].setAttribute("x", panelX + panelW / 2);
 
     var list = groups[title];
 
-    // max value for scale
+    // scale
     var max = 1;
     for (var i = 0; i < list.length; i++) {
       if (list[i].value > max) max = list[i].value;
@@ -271,17 +289,15 @@ function drawFrame(frame) {
       var d = list[r];
       var id = d.name;
 
-      var barW = (d.value / max) * (panelW - 40);
       var y = marginTop + r * rowH;
 
-      // ---- CREATE IF NOT EXISTS ----
+      // ----- CREATE NODE -----
       if (!nodes[id]) {
         var rect = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "rect",
         );
         rect.setAttribute("x", panelX + 10);
-        rect.setAttribute("y", y);
         rect.setAttribute("height", rowH * 0.7);
         rect.setAttribute("rx", 6);
         rect.setAttribute("fill", "#3b82f6");
@@ -292,25 +308,46 @@ function drawFrame(frame) {
           "text",
         );
         name.setAttribute("x", panelX + 14);
-        name.setAttribute("y", y + rowH / 2);
         name.setAttribute("dominant-baseline", "middle");
-        name.setAttribute("font-size", "12");
+        name.setAttribute("font-size", "13");
         name.textContent = d.name;
         svg.appendChild(name);
 
         nodes[id] = { rect: rect, text: name };
       }
 
-      // ---- UPDATE POSITION + WIDTH (ANIMATE) ----
-      animateAttr(nodes[id].rect, "y", y, 800);
-      animateAttr(nodes[id].rect, "width", barW, 800);
+      // ----- WIDTH ANIMATION -----
+      var prevValue = 0;
+      if (prevFrame) {
+        var p = prevFrame.data.find(function (x) {
+          return x.name === d.name && x.title === d.title;
+        });
+        if (p) prevValue = p.value;
+      }
 
+      var prevW = (prevValue / max) * (panelW - 40);
+      var targetW = (d.value / max) * (panelW - 40);
+
+      if (prevW < 0) prevW = 0;
+      if (targetW < 0) targetW = 0;
+      animateAttr(nodes[id].rect, "width", targetW, 800);
+
+      // ----- POSITION ANIMATION -----
+      animateAttr(nodes[id].rect, "y", y, 800);
       animateAttr(nodes[id].text, "y", y + rowH / 2, 800);
     }
   }
 }
 
-
+var dayLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+dayLabel.setAttribute("x", width / 2);
+dayLabel.setAttribute("y", 30);
+dayLabel.setAttribute("text-anchor", "middle");
+dayLabel.setAttribute("font-size", "24");
+dayLabel.setAttribute("font-weight", "700");
+svg.appendChild(dayLabel);
+     
+      
 loadCSV(sheetURL, function (err, text) {
   if (err) {
     console.error("Load error");
@@ -324,6 +361,15 @@ loadCSV(sheetURL, function (err, text) {
   console.log("Sales:", sales.length);
 
   raceFrames = buildFrames(sales);
+
+  // keep last 7 days only
+  if (raceFrames.length > 7) {
+    visibleFrames = raceFrames.slice(raceFrames.length - 7);
+  } else {
+    visibleFrames = raceFrames;
+  }
+
+  console.log("Visible frames:", visibleFrames.length);
   console.log("Frames:", raceFrames.length);
   console.log("First frame:", raceFrames[0]);
   console.log("First sale date:", sales[0].date);
@@ -333,8 +379,8 @@ loadCSV(sheetURL, function (err, text) {
     console.error("NO FRAMES");
     return;
   }
-current = 0;
-play();
+playIndex = 0;
+startPlayback();
   
 });
 

@@ -65,9 +65,6 @@ function parseCSV(text) {
   return data;
 }
 
-
-
-
 function buildSales(rows) {
   var sales = [];
 
@@ -87,7 +84,6 @@ function buildSales(rows) {
 
   return sales;
 }
-
 
 var svg = document.getElementById("chart");
 
@@ -139,10 +135,6 @@ function groupByTitle(list) {
 
   return g;
 }
-
-
-
-
 
 function buildFrames(sales) {
   var dayMap = {}; // date -> agent -> cumulative total
@@ -216,7 +208,7 @@ function startPlayback() {
   function step() {
     var frame = visibleFrames[playIndex];
 
-    dayLabel.textContent = frame.date;
+    document.getElementById("updated").textContent = "Updated at " + frame.date;
 
     drawFrame(frame, prevFrame); // 👈 pass previous frame
 
@@ -229,14 +221,13 @@ function startPlayback() {
       prevFrame = null; // reset animation base
     }
 
-    playTimer = setTimeout(step, 1500); // faster feels more alive
+    playTimer = setTimeout(step, 2500); // faster feels more alive
   }
 
   step();
 }
 
 function animateAttr(el, attr, target, duration) {
-  
   var start = Number(el.getAttribute(attr));
   if (isNaN(start)) start = 0;
   var diff = target - start;
@@ -253,12 +244,11 @@ function animateAttr(el, attr, target, duration) {
   }, stepTime);
 }
 
-
-
 function drawFrame(frame, prevFrame) {
   var groups = groupByTitle(frame.data);
   var layout = calcLayout(groups);
   var rowH = 32;
+  var medals = ["🥇", "🥈", "🥉"];
 
   for (var title in groups) {
     var panelX = layout[title].x;
@@ -310,10 +300,20 @@ function drawFrame(frame, prevFrame) {
         name.setAttribute("x", panelX + 14);
         name.setAttribute("dominant-baseline", "middle");
         name.setAttribute("font-size", "13");
+        name.setAttribute("font-weight", "bold");
         name.textContent = d.name;
         svg.appendChild(name);
 
-        nodes[id] = { rect: rect, text: name };
+        var medal = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
+        medal.setAttribute("dominant-baseline", "middle");
+        medal.setAttribute("font-size", "13");
+        medal.textContent = "";
+        svg.appendChild(medal);
+
+        nodes[id] = { rect: rect, text: name, medal: medal };
       }
 
       // ----- WIDTH ANIMATION -----
@@ -335,19 +335,20 @@ function drawFrame(frame, prevFrame) {
       // ----- POSITION ANIMATION -----
       animateAttr(nodes[id].rect, "y", y, 800);
       animateAttr(nodes[id].text, "y", y + rowH / 2, 800);
+
+      // ----- MEDAL -----
+      var nameWidth = d.name.length * 8; // approximate width
+      if (r < 3 && d.value > 0 && targetW > nameWidth + 20) {
+        nodes[id].medal.textContent = medals[r];
+        animateAttr(nodes[id].medal, "x", panelX + 10 + targetW + 5, 800);
+        animateAttr(nodes[id].medal, "y", y + rowH / 2, 800);
+      } else {
+        nodes[id].medal.textContent = "";
+      }
     }
   }
 }
 
-var dayLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-dayLabel.setAttribute("x", width / 2);
-dayLabel.setAttribute("y", 30);
-dayLabel.setAttribute("text-anchor", "middle");
-dayLabel.setAttribute("font-size", "24");
-dayLabel.setAttribute("font-weight", "700");
-svg.appendChild(dayLabel);
-     
-      
 loadCSV(sheetURL, function (err, text) {
   if (err) {
     console.error("Load error");
@@ -379,10 +380,6 @@ loadCSV(sheetURL, function (err, text) {
     console.error("NO FRAMES");
     return;
   }
-playIndex = 0;
-startPlayback();
-  
+  playIndex = 0;
+  startPlayback();
 });
-
-
-

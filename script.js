@@ -248,7 +248,7 @@ function drawFrame(frame, prevFrame) {
   var groups = groupByTitle(frame.data);
   var layout = calcLayout(groups);
   var rowH = 32;
-  var medals = ["🥇", "🥈", "🥉"];
+  var medals = ["1st", "2nd", "3rd"];
 
   for (var title in groups) {
     var panelX = layout[title].x;

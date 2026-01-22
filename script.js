@@ -202,6 +202,27 @@ function buildFrames(sales) {
   return frames;
 }
 
+function displayTopAchievers(frame) {
+  var h2 = document.querySelector("h2");
+  h2.innerHTML = "🏆 Sales Rank<br>";
+  var text = "Top Achievers";
+  var i = 0;
+  var interval = setInterval(function () {
+    if (i < text.length) {
+      h2.innerHTML += text[i];
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 100); // 100ms delay between each character
+}
+
+function hideTopAchievers() {
+  var h2 = document.querySelector("h2");
+  h2.innerHTML = "🏆 Sales Rank";
+  document.getElementById("top-achievers").style.display = "none";
+}
+
 function startPlayback() {
   if (!visibleFrames.length) return;
 
@@ -217,8 +238,16 @@ function startPlayback() {
     playIndex++;
 
     if (playIndex >= visibleFrames.length) {
-      playIndex = 0;
-      prevFrame = null; // reset animation base
+      // Freeze on last frame and display top achievers
+      displayTopAchievers(frame);
+      // Wait 3 minutes (180000 ms) then restart
+      setTimeout(function () {
+        hideTopAchievers();
+        playIndex = 0;
+        prevFrame = null;
+        startPlayback();
+      }, 180000);
+      return;
     }
 
     playTimer = setTimeout(step, 2500); // faster feels more alive

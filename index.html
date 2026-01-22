@@ -68,6 +68,19 @@
             fill: #000;
         }
 
+        #top-achievers {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            padding-top: 20px !important;
+            border-radius: 5px;
+            display: none;
+            font-size: 20px;
+        }
+
+
     </style>
 </head>
 
@@ -77,10 +90,11 @@
     <div id="header">
         <img id="logo" src="logo.png" alt="Company Logo" />
         <h2>🏆 Sales Rank</h2>
-        
+
         <div id="updated">Updated at --:--</div>
     </div>
     <svg id="chart"></svg>
+    <div id="top-achievers"></div>
 
     <script src="script.js"></script>
 </body>

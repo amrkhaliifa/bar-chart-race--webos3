@@ -100,19 +100,16 @@ function calcLayout(groups) {
   var titles = Object.keys(groups);
   var minW = 220;
 
-  var total = 0;
-  for (var i = 0; i < titles.length; i++) {
-    total += groups[titles[i]].length;
-  }
-
-  var free = width - minW * titles.length;
+  var total = titles.length; // Total number of titles
+  var free = width - minW * total;
+  var equalWidth = free / total; // Calculate equal width for each title
   var x = 10;
 
   var layout = {};
 
   for (var j = 0; j < titles.length; j++) {
     var t = titles[j];
-    var w = minW + (groups[t].length / total) * free;
+    var w = minW + equalWidth; // Set width to minW + equalWidth
     layout[t] = { x: x, width: w };
     x += w;
   }
@@ -122,9 +119,9 @@ function calcLayout(groups) {
 
 function groupByTitle(list) {
   var g = {
-    PA: [],
-    PC: [],
+    "PA / PC": [],
     Supervisor: [],
+    "Supervisor (with Team)": [],
     "Team Leader": [],
   };
 
@@ -278,7 +275,7 @@ function drawFrame(frame, prevFrame) {
   var layout = calcLayout(groups);
   var rowH = 32;
   var medals = ["1st", "2nd", "3rd"];
-  var colors = ["#FFD700", "#C0C0C0", "#CD7F32"]; // gold, silver, bronze
+  var colors = ["#fbd53a", "#cac5b9", "#ca7d0a"]; // gold, silver, bronze
 
   for (var title in groups) {
     var panelX = layout[title].x;

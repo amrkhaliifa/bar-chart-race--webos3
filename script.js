@@ -275,7 +275,11 @@ function drawFrame(frame, prevFrame) {
   var layout = calcLayout(groups);
   var rowH = 32;
   var medals = ["1st", "2nd", "3rd"];
-  var colors = ["#fbd53a", "#cac5b9", "#ca7d0a"]; // gold, silver, bronze
+  var colors = [
+    "url(#gold-gradient)",
+    "url(#silver-gradient)",
+    "url(#bronze-gradient)",
+  ];
 
   for (var title in groups) {
     var panelX = layout[title].x;
@@ -378,6 +382,76 @@ function drawFrame(frame, prevFrame) {
     }
   }
 }
+
+// Enhanced gradients for more beauty
+function addShinyGradients(svg) {
+  var defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+  // Gold gradient
+  var gold = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "linearGradient",
+  );
+  gold.setAttribute("id", "gold-gradient");
+  gold.setAttribute("x1", "0");
+  gold.setAttribute("x2", "1");
+  gold.setAttribute("y1", "0");
+  gold.setAttribute("y2", "1");
+  gold.innerHTML = `
+    <stop offset="0%" stop-color="#fffbe6"/>
+    <stop offset="20%" stop-color="#ffe066"/>
+    <stop offset="40%" stop-color="#fbd53a"/>
+    <stop offset="60%" stop-color="#ffe066"/>
+    <stop offset="80%" stop-color="#e6b800"/>
+    <stop offset="100%" stop-color="#fffbe6"/>
+  `;
+  defs.appendChild(gold);
+
+  // Silver gradient
+  var silver = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "linearGradient",
+  );
+  silver.setAttribute("id", "silver-gradient");
+  silver.setAttribute("x1", "0");
+  silver.setAttribute("x2", "1");
+  silver.setAttribute("y1", "0");
+  silver.setAttribute("y2", "1");
+  silver.innerHTML = `
+    <stop offset="0%" stop-color="#f8f8ff"/>
+    <stop offset="20%" stop-color="#e0e0e0"/>
+    <stop offset="40%" stop-color="#cac5b9"/>
+    <stop offset="60%" stop-color="#b0b0b0"/>
+    <stop offset="80%" stop-color="#a7a7a7"/>
+    <stop offset="100%" stop-color="#f8f8ff"/>
+  `;
+  defs.appendChild(silver);
+
+  // Bronze gradient
+  var bronze = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "linearGradient",
+  );
+  bronze.setAttribute("id", "bronze-gradient");
+  bronze.setAttribute("x1", "0");
+  bronze.setAttribute("x2", "1");
+  bronze.setAttribute("y1", "0");
+  bronze.setAttribute("y2", "1");
+  bronze.innerHTML = `
+    <stop offset="0%" stop-color="#ffe0b3"/>
+    <stop offset="20%" stop-color="#ffd6a0"/>
+    <stop offset="40%" stop-color="#ca7d0a"/>
+    <stop offset="60%" stop-color="#b87333"/>
+    <stop offset="80%" stop-color="#a05a00"/>
+    <stop offset="100%" stop-color="#ffe0b3"/>
+  `;
+  defs.appendChild(bronze);
+
+  svg.insertBefore(defs, svg.firstChild);
+}
+
+// Call this after svg is created
+addShinyGradients(svg);
 
 loadCSV(sheetURL, function (err, text) {
   if (err) {

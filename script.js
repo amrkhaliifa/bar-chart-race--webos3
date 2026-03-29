@@ -20,6 +20,26 @@ function loadCSV(url, callback) {
 
 var raceFrames = [];
 
+function normalizeDateKey(value) {
+  var parts = String(value || "").trim().split("-");
+  if (parts.length !== 3) return "";
+
+  var year = parts[0];
+  var month = parts[1].padStart(2, "0");
+  var day = parts[2].padStart(2, "0");
+
+  return year + "-" + month + "-" + day;
+}
+
+function dateKeyToTime(dateKey) {
+  var parts = dateKey.split("-");
+  return new Date(
+    Number(parts[0]),
+    Number(parts[1]) - 1,
+    Number(parts[2]),
+  ).getTime();
+}
+
 function parseCSV(text) {
   var rows = [];
   var row = [];
@@ -70,12 +90,15 @@ function buildSales(rows) {
 
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
+    var dateKey = normalizeDateKey(r.Date);
 
     var sale = r.Sales || "";
     sale = sale.replace(/,/g, "");
 
     sales.push({
-      date: new Date(r.Date),
+      date: new Date(dateKey),
+      dateKey: dateKey,
+      dateTime: dateKeyToTime(dateKey),
       agent: r.AgentName,
       title: r.Title,
       sales: Number(sale) || 0,
@@ -139,18 +162,12 @@ function buildFrames(sales) {
 
   // sort by date first
   sales.sort(function (a, b) {
-    return a.date - b.date;
+    return a.dateTime - b.dateTime;
   });
 
   for (var i = 0; i < sales.length; i++) {
     var s = sales[i];
-
-    var d =
-      s.date.getFullYear() +
-      "-" +
-      (s.date.getMonth() + 1) +
-      "-" +
-      s.date.getDate();
+    var d = s.dateKey;
 
     if (!dayMap[d]) dayMap[d] = {};
 
@@ -177,7 +194,9 @@ function buildFrames(sales) {
     allAgents[s.agent] = dayMap[d][s.agent];
   }
 
-  var dates = Object.keys(dayMap).sort();
+  var dates = Object.keys(dayMap).sort(function (a, b) {
+    return dateKeyToTime(a) - dateKeyToTime(b);
+  });
 
   var frames = [];
   for (var j = 0; j < dates.length; j++) {
@@ -467,12 +486,37 @@ loadCSV(sheetURL, function (err, text) {
 
   raceFrames = buildFrames(sales);
 
-  // keep last 7 days only
-  if (raceFrames.length > 7) {
-    visibleFrames = raceFrames.slice(raceFrames.length - 7);
-  } else {
-    visibleFrames = raceFrames;
+  // Keep all data for cumulative ranking, but only show the last 7
+  // unique dates in the order they were added to the sheet.
+  var addedDates = [];
+  var addedDatesSeen = {};
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var addedDate = normalizeDateKey(rows[i].Date);
+    if (addedDate && !addedDatesSeen[addedDate]) {
+      addedDates.unshift(addedDate);
+      addedDatesSeen[addedDate] = true;
+    }
   }
+
+  console.log("Added dates:", addedDates);
+  console.log("Added dates length:", addedDates.length);
+
+  var last7Dates = addedDates.slice(-7);
+  console.log("Last 7 dates:", last7Dates);
+
+  visibleFrames = raceFrames
+    .filter(function (frame) {
+      return last7Dates.indexOf(frame.date) !== -1;
+    })
+    .sort(function (a, b) {
+      return dateKeyToTime(a.date) - dateKeyToTime(b.date);
+    });
+  console.log(
+    "Visible frames dates:",
+    visibleFrames.map(function (f) {
+      return f.date;
+    }),
+  );
 
   console.log("Visible frames:", visibleFrames.length);
   console.log("Frames:", raceFrames.length);

@@ -143,9 +143,9 @@ function calcLayout(groups) {
 function groupByTitle(list) {
   var g = {
     "PA / PC": [],
+    "Senior Sales": [],
     Supervisor: [],
-    "Supervisor (with Team)": [],
-    "Team Leader": [],
+    "Sup.With Team / TL": [],
   };
 
   for (var i = 0; i < list.length; i++) {
